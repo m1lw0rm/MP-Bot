@@ -142,4 +142,4 @@ async def exp():
         embed.add_field(name="Stratum", value="stratum+tcp://mine.exp.mining-pool.fr:8056", inline=True)
         await bot.say(embed=embed)
 
-bot.run('MzgxODQwMzI1MjUwOTA4MTcw.DU6I4g.lT-q0k_fcIKSLEuR_Ss1CE2Es7s')
+bot.run('mdp')
