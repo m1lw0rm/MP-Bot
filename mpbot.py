@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import discord
 from discord.ext import commands
+from collections import namedtuple
 import os.path
 import re
 import sys
@@ -34,7 +35,8 @@ async def on_ready():
 async def on_message(message):
     await bot.process_commands(message)
 
-
+# ============================================================================
+# Memo commands
 
 @bot.command(pass_context = True)
 async def createMemo(ctx, title: str, mem: str):
@@ -80,78 +82,76 @@ async def list():
         if name.endswith('.mem')
     ) or 'Aucun fichier')
 
-@bot.command()
-async def ubiq():
-    async with http_session.get('https://ubq.mining-pool.fr/api/stats') as response:
-        data = await response.json()
-    embed=discord.Embed(title="ubq.mining-pool.fr", url="https://ubq.mining-pool.fr/", description="Welcome to our Ubiq pool", color=0x00ea90)
-    embed.set_author(name="Ubiq")
-    embed.set_thumbnail(url="https://ubq.mining-pool.fr/ubiq-a1abc2fed205c2e2c78db574ca777125.jpg")
-    embed.add_field(name="Miners", value=str(data['minersTotal']), inline=True)
-    embed.add_field(name="Hashrate", value=str(data['hashrate'] / 1000000000) + "  Gh/s", inline=True)
-    embed.add_field(name="Stratum", value="stratum+tcp://mine.ubq.mining-pool.fr:8088", inline=True)
-    await bot.say(embed=embed)
+# ============================================================================
+# Mining pool commands
 
-@bot.command()
-async def pirl():
-    async with http_session.get('http://pirl.mining-pool.fr/api/stats') as response:
-        data = await response.json()
-    embed=discord.Embed(title="pirl.mining-pool.fr", url="https://pirl.mining-pool.fr/", description="Welcome to our Pirl pool", color=0x76A114)
-    embed.set_author(name="pirl")
-    embed.set_thumbnail(url="http://pirl.mining-pool.fr/pirl-c0b197292e6ab60c66af3982d752cb33.jpg")
-    embed.add_field(name="Miners", value=str(data['minersTotal']), inline=True)
-    embed.add_field(name="Hashrate", value=str(data['hashrate'] / 1000000000) + "  *Gh/s*", inline=True)
-    embed.add_field(name="Stratum", value="stratum+tcp://mine.pirl.mining-pool.fr:8006", inline=True)
-    await bot.say(embed=embed)
+Pool = namedtuple('Pool', 'name server color thumbnail stratum')
+POOLS = {
+    'ubq': Pool(
+        name='Ubiq', color=0x00ea90,
+        server='ubq.mining-pool.fr',
+        thumbnail='https://ubq.mining-pool.fr/ubiq-a1abc2fed205c2e2c78db574ca777125.jpg',
+        stratum='stratum+tcp://mine.ubq.mining-pool.fr:8088',
+    ),
+    'pirl': Pool(
+        name='Pirl', color=0x76A114,
+        server='pirl.mining-pool.fr',
+        thumbnail='http://pirl.mining-pool.fr/pirl-c0b197292e6ab60c66af3982d752cb33.jpg',
+        stratum='stratum+tcp://mine.pirl.mining-pool.fr:8006',
+    ),
+    'music': Pool(
+        name='music', color=0xFFB500,
+        server='music.mining-pool.fr',
+        thumbnail='https://music.mining-pool.fr/music-dfadb5d98973047b3bb797a9fee491ca.jpg',
+        stratum='stratum+tcp://mine.music.mining-pool.fr:8005',
+    ),
+    'etc': Pool(
+        name='ethereum classic', color=0x4FB859,
+        server='etc.mining-pool.fr',
+        thumbnail='https://etc.mining-pool.fr/etc-fc2f17933bc3b573a3e2bb8ad47a03c8.jpg',
+        stratum='stratum+tcp://mine.etc.mining-pool.fr:8004',
+    ),
+    'eth': Pool(
+        name='ethereum', color=0x5B99E0,
+        server='eth.mining-pool.fr',
+        thumbnail='https://eth.mining-pool.fr/eth-063dfbf1fd7e87058e34424100242ffe.jpg',
+        stratum='stratum+tcp://mine.eth.mining-pool.fr:8003',
+    ),
+    'exp': Pool(
+        name='exp', color=0xDC5100,
+        server='exp.mining-pool.fr',
+        thumbnail='https://exp.mining-pool.fr/exp-0c56250a40f1882cdc30f8c321928a37.jpg',
+        stratum='stratum+tcp://mine.exp.mining-pool.fr:8056',
+    ),
+}
 
-@bot.command()
-async def music():
-    async with http_session.get('https://music.mining-pool.fr/api/stats') as response:
-        data = await response.json()
-    embed=discord.Embed(title="music.mining-pool.fr", url="https://music.mining-pool.fr/", description="Welcome to our music pool", color=0xFFB500)
-    embed.set_author(name="music")
-    embed.set_thumbnail(url="https://music.mining-pool.fr/music-dfadb5d98973047b3bb797a9fee491ca.jpg")
-    embed.add_field(name="Miners", value=str(data['minersTotal']), inline=True)
-    embed.add_field(name="Hashrate", value=str(data['hashrate'] / 1000000000) + "  *Gh/s*", inline=True)
-    embed.add_field(name="Stratum", value="stratum+tcp://mine.music.mining-pool.fr:8005", inline=True)
-    await bot.say(embed=embed)
 
-@bot.command()
-async def etc():
-    async with http_session.get('https://etc.mining-pool.fr/api/stats') as response:
-        data = await response.json()
-    embed=discord.Embed(title="etc.mining-pool.fr", url="https://etc.mining-pool.fr/", description="Welcome to our etc pool", color=0x4FB859)
-    embed.set_author(name="etc")
-    embed.set_thumbnail(url="https://etc.mining-pool.fr/etc-fc2f17933bc3b573a3e2bb8ad47a03c8.jpg")
-    embed.add_field(name="Miners", value=str(data['minersTotal']), inline=True)
-    embed.add_field(name="Hashrate", value=str(data['hashrate'] / 1000000000) + "  *Gh/s*", inline=True)
-    embed.add_field(name="Stratum", value="stratum+tcp://mine.etc.mining-pool.fr:8004", inline=True)
-    await bot.say(embed=embed)
+def wallet_shower(pool):
+    ''' Generate a command that shows the given pool '''
+    async def show_wallet():
+        async with http_session.get('https://{pool.server}/api/stats'.format(pool=pool)) as response:
+            data = await response.json()
 
-@bot.command()
-async def eth():
-    async with http_session.get('https://eth.mining-pool.fr/api/stats') as response:
-        data = await response.json()
-    embed=discord.Embed(title="eth.mining-pool.fr", url="https://eth.mining-pool.fr/", description="Welcome to our eth pool", color=0x5B99E0 )
-    embed.set_author(name="eth")
-    embed.set_thumbnail(url="https://eth.mining-pool.fr/eth-063dfbf1fd7e87058e34424100242ffe.jpg")
-    embed.add_field(name="Miners", value=str(data['minersTotal']), inline=True)
-    embed.add_field(name="Hashrate", value=str(data['hashrate'] / 1000000000) + "  *Gh/s*", inline=True)
-    embed.add_field(name="Stratum", value="stratum+tcp://mine.eth.mining-pool.fr:8003", inline=True)
-    await bot.say(embed=embed)
+        embed = discord.Embed(
+            title=pool.server,
+            url='https://{pool.server}/'.format(pool=pool),
+            description='Welcome to our {pool.name} pool'.format(pool=pool),
+            color=pool.color,
+        )
+        embed.set_author(name=pool.name)
+        embed.set_thumbnail(url=pool.thumbnail)
+        embed.add_field(name='Miners', value=str(data['minersTotal']), inline=True)
+        embed.add_field(name='Hashrate', value='%s *Gh/s*' % (data['hashrate']/1000000000), inline=True)
+        embed.add_field(name='Stratum', value=pool.stratum, inline=True)
+        await bot.say(embed=embed)
+    return show_wallet
 
-@bot.command()
-async def exp():
-    async with http_session.get("https://exp.mining-pool.fr/api/stats") as response:
-        data = await response.json()
-    embed=discord.Embed(title="exp.mining-pool.fr", url="https://exp.mining-pool.fr/", description="Welcome to our exp pool", color=0xDC5100 )
-    embed.set_author(name="exp")
-    embed.set_thumbnail(url="https://exp.mining-pool.fr/exp-0c56250a40f1882cdc30f8c321928a37.jpg")
-    embed.add_field(name="Miners", value=str(data['minersTotal']), inline=True)
-    embed.add_field(name="Hashrate", value=str(data['hashrate'] / 1000000000) + "  *Gh/s*", inline=True)
-    embed.add_field(name="Stratum", value="stratum+tcp://mine.exp.mining-pool.fr:8056", inline=True)
-    await bot.say(embed=embed)
+# Register all pools as commands
+for ticker, pool in POOLS.items():
+    bot.command(name=ticker)(wallet_shower(pool))
 
+# ============================================================================
+# Main entry point
 
 def main(token):
     global bot, http_session
