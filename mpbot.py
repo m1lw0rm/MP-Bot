@@ -126,25 +126,55 @@ POOLS = {
 }
 
 
+async def show_pool(pool):
+    ''' Show pool information on discord '''
+    async with http_session.get('https://{pool.server}/api/stats'.format(pool=pool)) as response:
+        data = await response.json()
+
+    embed = discord.Embed(
+        title=pool.server,
+        url='https://{pool.server}/'.format(pool=pool),
+        description='Welcome to our {pool.name} pool'.format(pool=pool),
+        color=pool.color,
+    )
+    embed.set_author(name=pool.name)
+    embed.set_thumbnail(url=pool.thumbnail)
+    embed.add_field(name='Miners', value=str(data['minersTotal']), inline=True)
+    embed.add_field(name='Hashrate', value='%s *Gh/s*' % (data['hashrate']/1000000000), inline=True)
+    embed.add_field(name='Stratum', value=pool.stratum, inline=True)
+    await bot.say(embed=embed)
+
+async def show_wallet(pool, wallet):
+    ''' Show wallet information on discord '''
+    url = 'https://{pool.server}/api/accounts/{wallet}'.format(pool=pool, wallet=wallet)
+    async with http_session.get(url) as response:
+        data = await response.json()
+
+    embed = discord.Embed(
+        description='Welcome to our {pool.name} pool.'.format(pool=pool),
+        color=pool.color,
+    )
+    embed.set_author(name=pool.name, url='https://{pool.server}/'.format(pool=pool) )
+    embed.set_thumbnail(url=pool.thumbnail)
+    embed.add_field(name='Address', value=wallet)
+    embed.add_field(name='Hashrate', value='%s *Gh/s*' % (data['hashrate']/1000000000), inline=True)
+    embed.add_field(name='Workers', value='{online} / {total} online'.format(
+                    online=data['workersOnline'], total=data['workersTotal']))
+    embed.add_field(name='Blocks found', value=data['stats']['blocksFound'])
+    embed.add_field(name='Payments', value=data['paymentsTotal'])
+    await bot.say(embed=embed)
+
 def wallet_shower(pool):
     ''' Generate a command that shows the given pool '''
-    async def show_wallet():
-        async with http_session.get('https://{pool.server}/api/stats'.format(pool=pool)) as response:
-            data = await response.json()
-
-        embed = discord.Embed(
-            title=pool.server,
-            url='https://{pool.server}/'.format(pool=pool),
-            description='Welcome to our {pool.name} pool'.format(pool=pool),
-            color=pool.color,
-        )
-        embed.set_author(name=pool.name)
-        embed.set_thumbnail(url=pool.thumbnail)
-        embed.add_field(name='Miners', value=str(data['minersTotal']), inline=True)
-        embed.add_field(name='Hashrate', value='%s *Gh/s*' % (data['hashrate']/1000000000), inline=True)
-        embed.add_field(name='Stratum', value=pool.stratum, inline=True)
-        await bot.say(embed=embed)
-    return show_wallet
+    async def do_show_wallet(wallet=None):
+        if wallet is None:
+            await show_pool(pool)
+        else:
+            if re.fullmatch(r'[a-zA-Z\d-]+', wallet):
+                await show_wallet(pool, wallet)
+            else:
+                await bot.say('Adresse invalide')
+    return do_show_wallet
 
 # Register all pools as commands
 for ticker, pool in POOLS.items():
