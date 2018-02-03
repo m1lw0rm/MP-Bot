@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# MP-Bot
-# Copyright (C) 2018 Stormower, https://github.com/Stormower
+# Mining-Pool_Bot
+# Copyright (C) 2018 Mining-pool, http://mining-pool.fr/
 #               2018 Julien Hartmann, juli1.hartmann@gmail.com
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ import os.path
 import re
 import sys
 
-ALLOWED_USERS = ('181353136106110976', '259093795654598656', '164371071393464320', "304635262334402563")
+ALLOWED_USERS = ('181353136106110976', '259093795654598656', '164371071393464320', '304635262334402563')
 
 description = '''Un bot cool.
 
