@@ -77,7 +77,7 @@ async def read(title: str):
             with open('%s.mem' % filename, 'r') as content_file:
                 await bot.say("```\n%s\n```" %  content_file.read())
         except IOError:
-            pass
+            await bot.say("memo inconnu")
 
 @bot.command(pass_context = True)
 async def delete(ctx, title: str):
